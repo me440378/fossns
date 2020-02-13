@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>element-starter</title>
+</head>
+
+<body>
+  <div id="app"></div>
+<script type="text/javascript" src="manifest.js?19ca4c088d1d81dae0f4"></script><script type="text/javascript" src="vendor.js?ed94a60bf2ccbf33b9c3"></script><script type="text/javascript" src="index.js?3543ffdd420b771ef06b"></script></body>
+
+</html>

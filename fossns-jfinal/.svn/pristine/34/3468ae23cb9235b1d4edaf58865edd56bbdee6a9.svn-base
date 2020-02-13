@@ -1,0 +1,91 @@
+package com.fossns.service.admin;
+
+import java.util.List;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.fossns.helper.JsonHelper;
+import com.fossns.helper.MessageHelper;
+import com.fossns.model.Groups;
+import com.jfinal.plugin.activerecord.Db;
+import com.jfinal.plugin.activerecord.Record;
+
+public class CreateGroupService {
+
+	private JsonHelper JsonHelper;
+	private MessageHelper MessageHelper;
+	public CreateGroupService() {
+		JsonHelper = new JsonHelper();
+		MessageHelper = new MessageHelper();
+	}
+	
+	public JSONObject searchCreateGroup(int length, int offset, String creator_name, String group_name,
+			String startCreated_at, String endCreated_at) {
+		JSONObject jo = new JSONObject();
+		String sql = "select groups.name as group_name,groups.id as group_id,groups.summary as summary,groups.creator_id as creator_id,customers.name as creator_name,DATE_FORMAT(groups.created_at,'%Y-%m-%d %H:%i:%s') as created_at from groups,customers where groups.creator_id=customers.id and groups.is_public=0 and groups.is_checking=1 and customers.name like '%"+creator_name+"%' and groups.name like '%"+group_name+"%'";
+		if(startCreated_at!="") {
+			sql+=" and created_at>\'"+startCreated_at+"\'";
+		}
+		if(endCreated_at!="") {
+			sql+=" and created_at<\'"+endCreated_at+"\'";
+		}
+		String tsql = "select count(*) as total from ("+sql+") as t";
+		sql+=" order by created_at limit "+offset+","+length;
+		List<Record> lr = null;
+		Record re = null;
+		JSONArray items = new JSONArray();
+		JSONObject table = new JSONObject();
+		try {
+			lr = Db.find(sql);
+			re = Db.findFirst(tsql);
+			items = JsonHelper.getJSONArrayByListRecord(lr);
+			int total = JsonHelper.getIntByRecord(re, "total");
+			int pageCount = length;
+			int pageIndex = offset /length +1;
+			table.put("items", items);
+			table.put("total", total);
+			table.put("pageCount", pageCount);
+			table.put("pageIndex", pageIndex);
+		} catch(Exception e) {
+			jo = JsonHelper.getSimpleReply(1, e.toString());
+			return jo;
+		}
+		
+		jo.put("table", table);
+		return jo;
+	}
+	
+	public JSONObject checkCreateGroup(int group_id, int pass, int customer_id) {
+		JSONObject jo = new JSONObject();
+		Groups model = (Groups)Groups.dao.findById(group_id);
+		if(pass==1) {
+			model.setIsPublic(true);
+			model.setIsChecking(false);
+			try {
+				if(model.update()) {
+					jo = JsonHelper.getSimpleReply(0, null);
+					MessageHelper.sendSystemMessage(customer_id, "你的圈子已通过审核");
+				} else {
+					jo = JsonHelper.getSimpleReply(1, null);
+				}
+			} catch(Exception e) {
+				jo = JsonHelper.getSimpleReply(1, e.toString());
+			}
+		} else {
+			model.setIsChecking(false);
+			try {
+				if(model.update()) {
+					jo = JsonHelper.getSimpleReply(0, null);
+					MessageHelper.sendSystemMessage(customer_id, "你的圈子没有通过审核");
+				} else {
+					jo = JsonHelper.getSimpleReply(1, null);
+				}
+			} catch(Exception e) {
+				jo = JsonHelper.getSimpleReply(1, e.toString());
+			}
+			
+		}
+		
+		return jo;
+	}
+}
